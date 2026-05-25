@@ -1,10 +1,14 @@
 [project]
 name = "chevel-ai"
 version = "0.1.0"
-description = "Local CHEVEL AI MVP with Python and optional C++ helpers."
+description = "Local cognitive control layer for Dum-E/U, WIL-E, and safe robotics workflows."
+readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [
+  { name = "Mackson Victor" }
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-

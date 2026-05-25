@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a safe improvement for CHEVEL AI.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for public feature requests. For robotics features, describe the safety expectation clearly.
+  - type: input
+    id: area
+    attributes:
+      label: Area
+      placeholder: Dum-E/U bridge
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or goal
+      description: What should this improve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the desired behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety considerations
+      description: Required for robotics, command execution, or hardware-facing changes.
+    validations:
+      required: false
