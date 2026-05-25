@@ -25,6 +25,7 @@ class AcaoCandidata:
 
     acao: str
     parametros: Dict = field(default_factory=dict)
+    beneficio: float = 0.5
     prioridade: float = 0.5
     urgencia: float = 0.0
     custo_recurso: float = 0.0
@@ -36,6 +37,7 @@ class AcaoCandidata:
         return cls(
             acao=str(payload.get("acao", "")),
             parametros=dict(payload.get("parametros", {})),
+            beneficio=float(payload.get("beneficio", payload.get("benefit", payload.get("prioridade", payload.get("confianca", 0.5))))),
             prioridade=float(payload.get("prioridade", payload.get("confianca", 0.5))),
             urgencia=float(payload.get("urgencia", 0.0)),
             custo_recurso=float(payload.get("custo_recurso", 0.0)),
@@ -48,6 +50,7 @@ class AcaoCandidata:
             "tipo": "acao",
             "acao": self.acao,
             "parametros": self.parametros,
+            "beneficio": self.beneficio,
             "prioridade": self.prioridade,
             "urgencia": self.urgencia,
             "custo_recurso": self.custo_recurso,
@@ -101,14 +104,26 @@ class DecisionEngine:
         scored = []
         for action in candidates:
             risk = self.classificar_risco(action, estado_mundo or {})
-            score = action.prioridade - self.RISK_PENALTY[risk] + action.urgencia - action.custo_recurso
+            score = self.pontuar_acao(action, risk)
             scored.append((score, action, risk))
 
         score, chosen, risk = max(scored, key=lambda item: item[0])
         requires_confirmation = self._requires_confirmation(chosen, risk)
         reason = self._reason(chosen, risk, requires_confirmation)
-        confidence = max(0.0, min(1.0, chosen.prioridade - self.RISK_PENALTY[risk] / 2))
+        if requires_confirmation and risk == NivelRisco.CRITICO:
+            reason = self.pedir_confirmacao_humana(chosen, risk)["mensagem"]
+        confidence = max(0.0, min(1.0, (chosen.beneficio + chosen.prioridade) / 2 - self.RISK_PENALTY[risk] / 2))
         return Decisao(chosen, score, risk, requires_confirmation, reason, confidence)
+
+    def pontuar_acao(self, action: AcaoCandidata, risk: NivelRisco) -> float:
+        """Score = benefit + urgency + priority support - risk - resource cost."""
+        return (
+            action.beneficio
+            + action.urgencia
+            + (action.prioridade * 0.25)
+            - self.RISK_PENALTY[risk]
+            - action.custo_recurso
+        )
 
     def classificar_risco(self, action: AcaoCandidata, estado_mundo: Dict) -> NivelRisco:
         """Classify risk, preferring the C++ quick core when available."""
@@ -155,6 +170,18 @@ class DecisionEngine:
         if confirmation:
             return f"Acao '{action.acao}' classificada como risco {risk.value}; aguardando confirmacao humana."
         return f"Acao '{action.acao}' classificada como risco {risk.value}; autorizada pelo MVP seguro."
+
+    def pedir_confirmacao_humana(self, action: AcaoCandidata, risk: NivelRisco) -> Dict:
+        """Create a human confirmation request for critical or sensitive actions."""
+        return {
+            "status": "requires_confirmation",
+            "acao": action.to_action_dict(),
+            "risco": risk.value,
+            "mensagem": (
+                f"Confirmacao humana obrigatoria: a acao '{action.acao}' foi classificada "
+                f"como risco {risk.value}."
+            ),
+        }
 
 
 decision_engine = DecisionEngine()

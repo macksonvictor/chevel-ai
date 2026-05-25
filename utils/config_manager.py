@@ -18,8 +18,9 @@ class ChevelConfig:
     project_root: Path = PROJECT_ROOT
     data_dir: Path = PROJECT_ROOT / "data"
     memory_db_path: Path = PROJECT_ROOT / "data" / "memory" / "chevel.db"
+    memory_json_dir: Path = PROJECT_ROOT / "data" / "memory" / "interactions"
     ollama_host: str = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
-    ollama_model: str = os.getenv("CHEVEL_MODEL", "llama3.2:latest")
+    ollama_model: str = os.getenv("CHEVEL_MODEL", "llama3.1:8b")
     public_model_name: str = os.getenv("CHEVEL_PUBLIC_MODEL", "HELI 1.5")
     max_history: int = int(os.getenv("CHEVEL_MAX_HISTORY", "20"))
     allowed_programs: Dict[str, List[str]] = field(default_factory=lambda: {
@@ -55,6 +56,7 @@ def public_model_name(model_name: str | None = None) -> str:
     """Return the user-facing model name for UI/API responses."""
     config = get_config()
     requested = (model_name or "").strip()
-    if not requested or requested == config.ollama_model:
+    normalized = requested.lower()
+    if not requested or requested == config.ollama_model or normalized.startswith("llama"):
         return config.public_model_name
     return requested

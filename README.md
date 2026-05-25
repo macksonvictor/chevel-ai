@@ -239,9 +239,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
 
 ```powershell
 $env:CHEVEL_PUBLIC_MODEL="HELI 1.5"
-$env:CHEVEL_MODEL="llama3.2:latest"
+$env:CHEVEL_MODEL="llama3.1:8b"
 ollama serve
-ollama pull llama3.2:latest
+ollama pull llama3.1:8b
 ```
 
 ### 4. Start CLI
