@@ -49,6 +49,8 @@ class FastThinkingSystem:
     def __init__(self):
         self.estado_sensores: Dict = {}
         self.regras: List[RegraReflexa] = []
+        self.frequencia_hz = 100
+        self.ultimo_tick = 0.0
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._lock = threading.RLock()
@@ -58,8 +60,9 @@ class FastThinkingSystem:
     def iniciar_loop(self, frequencia_hz: int = 100) -> None:
         if self._thread and self._thread.is_alive():
             return
+        self.frequencia_hz = max(1, frequencia_hz)
         self._stop.clear()
-        interval = 1.0 / max(1, frequencia_hz)
+        interval = 1.0 / self.frequencia_hz
         self._thread = threading.Thread(target=self._loop, args=(interval,), daemon=True)
         self._thread.start()
 
@@ -98,14 +101,19 @@ class FastThinkingSystem:
             "sensores": dict(self.estado_sensores),
             "regras": len(self.regras),
             "loop_ativo": bool(self._thread and self._thread.is_alive()),
+            "frequencia_hz": self.frequencia_hz,
+            "ultimo_tick": self.ultimo_tick,
             "ultimos_reflexos": list(self.ultimos_reflexos),
         }
 
     def _loop(self, interval: float) -> None:
         while not self._stop.is_set():
+            started = time.perf_counter()
             with self._lock:
+                self.ultimo_tick = time.time()
                 self.avaliar_reflexos()
-            time.sleep(interval)
+            elapsed = time.perf_counter() - started
+            time.sleep(max(0.0, interval - elapsed))
 
     def _registrar_regras_padrao(self) -> None:
         self.registrar_regra(RegraReflexa(
@@ -127,11 +135,11 @@ class FastThinkingSystem:
         ))
         self.registrar_regra(RegraReflexa(
             nome="bateria_baixa",
-            descricao="Bateria abaixo de 10% -> pausar operacoes",
+            descricao="Bateria abaixo de 10% -> parada emergencia",
             prioridade=90,
             gatilho=Gatilho.SENSOR_VALOR,
             condicao=lambda estado: float(estado.get("bateria", 100) or 100) < 10,
-            acao=lambda estado: {"tipo": "pausar_operacoes", "motivo": "bateria_baixa"},
+            acao=lambda estado: {"tipo": "parada_emergencia", "motivo": "bateria_baixa"},
         ))
         self.registrar_regra(RegraReflexa(
             nome="sobrecorrente_motor",

@@ -29,7 +29,7 @@ class NativeBridgeTests(unittest.TestCase):
         reflexes = evaluate_reflexes({"bateria": 8})
 
         self.assertIsInstance(reflexes, list)
-        self.assertTrue(any(item["acao"]["tipo"] == "pausar_operacoes" for item in reflexes))
+        self.assertTrue(any(item["acao"]["tipo"] == "parada_emergencia" for item in reflexes))
 
 
 if __name__ == "__main__":

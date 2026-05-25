@@ -351,7 +351,7 @@ py::list evaluate_reflexes(const py::dict& sensor_state) {
         reflexes.append(make_reflex("temp_motor_alta", "Temperatura do motor acima de 80C", 95, "desligar_motor", "temperatura"));
     }
     if (dict_number(sensor_state, "bateria", 100.0) < 10.0) {
-        reflexes.append(make_reflex("bateria_baixa", "Bateria abaixo de 10%", 90, "pausar_operacoes", "bateria_baixa"));
+        reflexes.append(make_reflex("bateria_baixa", "Bateria abaixo de 10%", 90, "parada_emergencia", "bateria_baixa"));
     }
     if (dict_number(sensor_state, "corrente_motor_max", 0.0) > 4.0) {
         reflexes.append(make_reflex("sobrecorrente_motor", "Sobrecorrente acima de 4A", 85, "reduzir_potencia", "sobrecorrente"));

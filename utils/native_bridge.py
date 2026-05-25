@@ -97,7 +97,10 @@ def evaluate_reflexes(sensor_state: Dict) -> List[Dict]:
     """Ask the C++ quick core to evaluate reflex rules when available."""
     payload = json.dumps(sensor_state or {}, ensure_ascii=False)
     if _native is not None and hasattr(_native, "evaluate_reflexes"):
-        return [dict(item) for item in _native.evaluate_reflexes(sensor_state or {})]
+        return _normalize_critical_reflexes(
+            [dict(item) for item in _native.evaluate_reflexes(sensor_state or {})],
+            sensor_state or {},
+        )
 
     result = _call_service(["reflex", payload])
     if not result or not result.get("ok"):
@@ -105,7 +108,7 @@ def evaluate_reflexes(sensor_state: Dict) -> List[Dict]:
     reflexes = result.get("reflexes", [])
     if not isinstance(reflexes, list):
         return _evaluate_reflexes_fallback(sensor_state or {})
-    return [dict(item) for item in reflexes]
+    return _normalize_critical_reflexes([dict(item) for item in reflexes], sensor_state or {})
 
 
 def _call_service(args: Sequence[str]) -> Optional[Dict]:
@@ -210,7 +213,7 @@ def _evaluate_reflexes_fallback(sensor_state: Dict) -> List[Dict]:
     if float(sensor_state.get("temp_motor_max", 0) or 0) > 80:
         add("temp_motor_alta", "Temperatura do motor acima de 80C", 95, "desligar_motor", "temperatura")
     if float(sensor_state.get("bateria", 100) or 100) < 10:
-        add("bateria_baixa", "Bateria abaixo de 10%", 90, "pausar_operacoes", "bateria_baixa")
+        add("bateria_baixa", "Bateria abaixo de 10%", 90, "parada_emergencia", "bateria_baixa")
     if float(sensor_state.get("corrente_motor_max", 0) or 0) > 4:
         add("sobrecorrente_motor", "Sobrecorrente acima de 4A", 85, "reduzir_potencia", "sobrecorrente")
     if sensor_state.get("ultimo_heartbeat") and time.time() - float(sensor_state.get("ultimo_heartbeat")) > 5:
@@ -218,4 +221,23 @@ def _evaluate_reflexes_fallback(sensor_state: Dict) -> List[Dict]:
     if "pressao_garra" in sensor_state and float(sensor_state.get("pressao_garra") or 0) < 0.3:
         add("pressao_garra_baixa", "Pressao da garra abaixo de 30%", 75, "apertar_garra", "pressao_baixa")
 
+    return reflexes
+
+
+def _normalize_critical_reflexes(reflexes: List[Dict], sensor_state: Dict) -> List[Dict]:
+    """Keep old native binaries aligned with current critical safety policy."""
+    if float(sensor_state.get("bateria", 100) or 100) < 10:
+        upgraded = False
+        for item in reflexes:
+            if item.get("nome") == "bateria_baixa":
+                item["acao"] = {"tipo": "parada_emergencia", "motivo": "bateria_baixa"}
+                upgraded = True
+        if not upgraded:
+            reflexes.append({
+                "nome": "bateria_baixa",
+                "descricao": "Bateria abaixo de 10%",
+                "prioridade": 90,
+                "acao": {"tipo": "parada_emergencia", "motivo": "bateria_baixa"},
+                "engine": "python-safety-normalizer",
+            })
     return reflexes
