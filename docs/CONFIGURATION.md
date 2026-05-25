@@ -33,6 +33,15 @@ OLLAMA_HOST=http://127.0.0.1:11434
 Optional values such as `PORCUPINE_ACCESS_KEY` and `CHEVEL_WAKE_WORD_PATH`
 should be added only to the local `.env` or to your OS environment.
 
+Optional private user profile:
+
+```env
+CHEVEL_USER_PROFILE_PATH=data/memory/profile.local.json
+```
+
+The profile file is loaded as LLM context when present, but it is ignored by
+Git and should stay on the local machine.
+
 ## Public Examples
 
 The repository tracks only examples:
@@ -138,6 +147,7 @@ have been checked.
 Do not commit:
 
 - `*.local.json` files;
+- `data/memory/profile.local.json`;
 - API keys and tokens;
 - real hardware IPs or serial ports tied to a private setup;
 - logs, memory databases, user conversations, or generated datasets;

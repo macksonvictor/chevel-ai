@@ -47,6 +47,7 @@ class ChevelConfig:
     data_dir: Path = PROJECT_ROOT / "data"
     memory_db_path: Path = PROJECT_ROOT / "data" / "memory" / "chevel.db"
     memory_json_dir: Path = PROJECT_ROOT / "data" / "memory" / "interactions"
+    user_profile_path: Path = PROJECT_ROOT / "data" / "memory" / "profile.local.json"
     ollama_host: str = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
     ollama_model: str = os.getenv("CHEVEL_MODEL", "llama3.1:8b")
     public_model_name: str = os.getenv("CHEVEL_PUBLIC_MODEL", "HELI 1.5")
@@ -110,6 +111,13 @@ def load_config(
         _get_nested(payload, "paths", "memory_json_dir", default=data_dir / "memory" / "interactions"),
         root,
     )
+    user_profile_path = _resolve_path(
+        env_map.get(
+            "CHEVEL_USER_PROFILE_PATH",
+            _get_nested(payload, "paths", "user_profile_path", default=data_dir / "memory" / "profile.local.json"),
+        ),
+        root,
+    )
     search_roots = [
         _resolve_path(path, root)
         for path in _get_nested(payload, "paths", "search_roots", default=DEFAULT_SEARCH_ROOTS)
@@ -121,6 +129,7 @@ def load_config(
         data_dir=data_dir,
         memory_db_path=memory_db_path,
         memory_json_dir=memory_json_dir,
+        user_profile_path=user_profile_path,
         ollama_host=env_map.get(
             "OLLAMA_HOST",
             str(_get_nested(payload, "core", "ollama_host", default="http://127.0.0.1:11434")),

@@ -21,6 +21,8 @@ class PublicScopeFilesTests(unittest.TestCase):
             "data/configs/robot-arm.example.json",
             "data/configs/integrations.example.json",
             "data/configs/safety.example.json",
+            "data/memory/README.md",
+            "data/memory/profile.example.json",
             "data/models/README.md",
             "data/models/model-manifest.example.json",
             "data/workflows/README.md",
@@ -32,6 +34,7 @@ class PublicScopeFilesTests(unittest.TestCase):
 
     def test_public_json_examples_are_valid(self):
         examples = list((ROOT / "data" / "configs").glob("*.example.json"))
+        examples += list((ROOT / "data" / "memory").glob("*.example.json"))
         examples += list((ROOT / "data" / "models").glob("*.example.json"))
         examples += list((ROOT / "data" / "workflows").glob("*.example.json"))
 

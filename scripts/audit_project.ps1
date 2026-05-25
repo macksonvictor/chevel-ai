@@ -17,6 +17,8 @@ $RequiredFiles = @(
     "data/configs/voice.example.json",
     "data/configs/dume.example.json",
     "data/configs/robot-arm.example.json",
+    "data/memory/README.md",
+    "data/memory/profile.example.json",
     "docs/CONFIGURATION.md",
     "docs/ROBOT_ARM.md",
     "tests/test_cognitive_upgrade.py",
