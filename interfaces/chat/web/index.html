@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chevel</title>
+    <link rel="stylesheet" href="/static/styles.css?v=heli-media-2">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <div class="top-actions" aria-label="Acoes">
+                <button class="nav-button" id="sidebarButton" type="button" title="Historico" aria-label="Abrir historico" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3.5" y="4" width="17" height="16" rx="2.4"></rect>
+                        <path d="M8.5 4v16"></path>
+                        <path d="M5.8 8h1"></path>
+                        <path d="M5.8 12h1"></path>
+                        <path d="M5.8 16h1"></path>
+                    </svg>
+                </button>
+                <button class="nav-button" id="newChatButton" type="button" title="Novo chat" aria-label="Novo chat">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 19h14"></path>
+                        <path d="M14.7 5.2l4.1 4.1"></path>
+                        <path d="M15.9 4l4.1 4.1-9.7 9.7-4.8 1.2 1.2-4.8z"></path>
+                    </svg>
+                </button>
+            </div>
+            <span class="connection-status" id="connectionStatus">Conectando...</span>
+            <div class="runtime-pill" id="runtimeStatus">iniciando</div>
+        </header>
+
+        <section class="chat-stage" aria-label="Chat CHEVEL">
+            <aside class="history-sidebar" id="historySidebar" aria-label="Historico de conversas">
+                <nav class="sidebar-menu" aria-label="Menu CHEVEL">
+                    <button class="sidebar-menu-item active" id="sidebarNewChatButton" type="button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5 19h14"></path>
+                            <path d="M14.7 5.2l4.1 4.1"></path>
+                            <path d="M15.9 4l4.1 4.1-9.7 9.7-4.8 1.2 1.2-4.8z"></path>
+                        </svg>
+                        <span>New Chat</span>
+                    </button>
+                    <button class="sidebar-menu-item" id="launchButton" type="button" aria-pressed="false" title="Ativar voz">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5 14.5 3.5 20.5 9.5 19"></path>
+                            <path d="M9 15 15.5 8.5"></path>
+                            <path d="M13.5 5.5c2.1-1.3 4.4-1.8 7-1.5.3 2.6-.2 4.9-1.5 7l-4.6 4.6-5.5-5.5z"></path>
+                            <path d="M8.5 12.5 5 11l3.8-3.8 2.9.7"></path>
+                            <path d="M11.5 15.5 13 19l3.8-3.8-.7-2.9"></path>
+                        </svg>
+                        <span>Launch</span>
+                    </button>
+                    <button class="sidebar-menu-item" id="settingsButton" type="button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 2.8v2.1"></path>
+                            <path d="M12 19.1v2.1"></path>
+                            <path d="M2.8 12h2.1"></path>
+                            <path d="M19.1 12h2.1"></path>
+                            <path d="m5.5 5.5 1.5 1.5"></path>
+                            <path d="m17 17 1.5 1.5"></path>
+                            <path d="m18.5 5.5-1.5 1.5"></path>
+                            <path d="m7 17-1.5 1.5"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </button>
+                </nav>
+
+                <div class="sidebar-history" id="historyList" aria-label="Mensagens recentes"></div>
+            </aside>
+            <div class="hero-logo" id="heroLogo">
+                <img src="/static/chevel-clean.png" alt="chevel">
+            </div>
+            <div id="messages" class="messages"></div>
+            <div id="typingIndicator" class="typing" aria-hidden="true">
+                <span></span><span></span><span></span>
+            </div>
+        </section>
+
+        <form class="chat-composer" id="messageForm">
+            <input id="fileInput" class="file-input" type="file" multiple accept="image/*,audio/*,.txt,.md,.json,.csv,.log,.pdf">
+            <input
+                id="messageInput"
+                type="text"
+                placeholder="Envie uma mensagem"
+                autocomplete="off"
+                aria-label="Mensagem"
+            >
+            <div class="attachment-status" id="attachmentStatus" aria-live="polite"></div>
+            <div class="voice-status" id="voiceStatus" aria-live="polite"></div>
+            <div class="composer-actions">
+                <button class="tool-button" id="attachButton" type="button" title="Adicionar" aria-label="Adicionar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 5v14"></path>
+                        <path d="M5 12h14"></path>
+                    </svg>
+                </button>
+                <button class="tool-button" id="webSearchButton" type="button" title="Pesquisa web" aria-label="Pesquisa web" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="8.5"></circle>
+                        <path d="M3.8 12h16.4"></path>
+                        <path d="M12 3.5c2.2 2.3 3.4 5 3.4 8.5s-1.2 6.2-3.4 8.5"></path>
+                        <path d="M12 3.5C9.8 5.8 8.6 8.5 8.6 12s1.2 6.2 3.4 8.5"></path>
+                    </svg>
+                </button>
+                <span class="model-status" id="modelStatus" aria-hidden="true">HELI 1.5</span>
+                <button class="tool-button" id="voiceButton" type="button" title="Ativar voz" aria-label="Ativar voz" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 4.5a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0v-4a3 3 0 0 0-3-3z"></path>
+                        <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"></path>
+                        <path d="M12 18v2.5"></path>
+                    </svg>
+                </button>
+                <button class="send-button" id="sendButton" type="submit" title="Enviar mensagem" aria-label="Enviar mensagem">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 19V5"></path>
+                        <path d="M6.5 10.5 12 5l5.5 5.5"></path>
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </main>
+    <script src="/static/app.js?v=heli-media-2"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+tools/
+native/bin/
+*.pyd
+*.so
+*.dll
+data/memory/*.db
+data/logs/

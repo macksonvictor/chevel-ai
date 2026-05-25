@@ -1,0 +1,162 @@
+"""Fast reflex loop for CHEVEL safety rules."""
+
+from __future__ import annotations
+
+import threading
+import time
+from dataclasses import dataclass
+from enum import Enum
+from typing import Callable, Dict, List, Optional
+
+from utils.native_bridge import evaluate_reflexes
+
+
+class Gatilho(str, Enum):
+    SENSOR_VALOR = "sensor_valor"
+    TIMEOUT = "timeout"
+
+
+@dataclass
+class RegraReflexa:
+    nome: str
+    descricao: str
+    prioridade: int
+    gatilho: Gatilho
+    condicao: Callable[[Dict], bool]
+    acao: Callable[[Dict], Dict] | None = None
+    cooldown: float = 1.0
+    ultimo_disparo: float = 0.0
+
+    def avaliar(self, estado: Dict) -> Optional[Dict]:
+        now = time.time()
+        if now - self.ultimo_disparo < self.cooldown:
+            return None
+        if not self.condicao(estado):
+            return None
+        self.ultimo_disparo = now
+        payload = self.acao(estado) if self.acao else {}
+        return {
+            "nome": self.nome,
+            "descricao": self.descricao,
+            "prioridade": self.prioridade,
+            "acao": payload or {"tipo": "reflexo", "nome": self.nome},
+        }
+
+
+class FastThinkingSystem:
+    """Millisecond reflex checks without LLM involvement."""
+
+    def __init__(self):
+        self.estado_sensores: Dict = {}
+        self.regras: List[RegraReflexa] = []
+        self._thread: threading.Thread | None = None
+        self._stop = threading.Event()
+        self._lock = threading.RLock()
+        self.ultimos_reflexos: List[Dict] = []
+        self._registrar_regras_padrao()
+
+    def iniciar_loop(self, frequencia_hz: int = 100) -> None:
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop.clear()
+        interval = 1.0 / max(1, frequencia_hz)
+        self._thread = threading.Thread(target=self._loop, args=(interval,), daemon=True)
+        self._thread.start()
+
+    def parar_loop(self) -> None:
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=1.0)
+
+    def atualizar_sensores(self, dados: Dict) -> List[Dict]:
+        with self._lock:
+            self.estado_sensores.update(dados)
+            return self.avaliar_reflexos()
+
+    def registrar_regra(self, regra: RegraReflexa) -> None:
+        with self._lock:
+            self.regras.append(regra)
+            self.regras.sort(key=lambda item: item.prioridade, reverse=True)
+
+    def avaliar_reflexos(self) -> List[Dict]:
+        native = evaluate_reflexes(self.estado_sensores)
+        if native:
+            self.ultimos_reflexos = native[-10:]
+            return native
+
+        reflexos = []
+        for regra in self.regras:
+            result = regra.avaliar(self.estado_sensores)
+            if result:
+                reflexos.append(result)
+        if reflexos:
+            self.ultimos_reflexos = (self.ultimos_reflexos + reflexos)[-10:]
+        return reflexos
+
+    def estado(self) -> Dict:
+        return {
+            "sensores": dict(self.estado_sensores),
+            "regras": len(self.regras),
+            "loop_ativo": bool(self._thread and self._thread.is_alive()),
+            "ultimos_reflexos": list(self.ultimos_reflexos),
+        }
+
+    def _loop(self, interval: float) -> None:
+        while not self._stop.is_set():
+            with self._lock:
+                self.avaliar_reflexos()
+            time.sleep(interval)
+
+    def _registrar_regras_padrao(self) -> None:
+        self.registrar_regra(RegraReflexa(
+            nome="pessoa_zona_braco",
+            descricao="Pessoa detectada na zona do braco -> parada emergencia",
+            prioridade=100,
+            gatilho=Gatilho.SENSOR_VALOR,
+            condicao=lambda estado: bool(estado.get("pessoa_detectada_zona_braco")),
+            acao=lambda estado: {"tipo": "parada_emergencia", "motivo": "pessoa_zona_braco"},
+            cooldown=0.5,
+        ))
+        self.registrar_regra(RegraReflexa(
+            nome="temp_motor_alta",
+            descricao="Temperatura do motor acima de 80C -> desligar motor",
+            prioridade=95,
+            gatilho=Gatilho.SENSOR_VALOR,
+            condicao=lambda estado: float(estado.get("temp_motor_max", 0) or 0) > 80,
+            acao=lambda estado: {"tipo": "desligar_motor", "motivo": "temperatura"},
+        ))
+        self.registrar_regra(RegraReflexa(
+            nome="bateria_baixa",
+            descricao="Bateria abaixo de 10% -> pausar operacoes",
+            prioridade=90,
+            gatilho=Gatilho.SENSOR_VALOR,
+            condicao=lambda estado: float(estado.get("bateria", 100) or 100) < 10,
+            acao=lambda estado: {"tipo": "pausar_operacoes", "motivo": "bateria_baixa"},
+        ))
+        self.registrar_regra(RegraReflexa(
+            nome="sobrecorrente_motor",
+            descricao="Sobrecorrente acima de 4A -> reduzir potencia",
+            prioridade=85,
+            gatilho=Gatilho.SENSOR_VALOR,
+            condicao=lambda estado: float(estado.get("corrente_motor_max", 0) or 0) > 4,
+            acao=lambda estado: {"tipo": "reduzir_potencia", "motivo": "sobrecorrente"},
+        ))
+        self.registrar_regra(RegraReflexa(
+            nome="heartbeat_perdido",
+            descricao="Sem heartbeat por mais de 5s -> ir para home",
+            prioridade=80,
+            gatilho=Gatilho.TIMEOUT,
+            condicao=lambda estado: bool(estado.get("ultimo_heartbeat")) and time.time() - float(estado.get("ultimo_heartbeat")) > 5,
+            acao=lambda estado: {"tipo": "ir_para_home", "motivo": "heartbeat_perdido"},
+        ))
+        self.registrar_regra(RegraReflexa(
+            nome="pressao_garra_baixa",
+            descricao="Pressao da garra abaixo de 30% -> apertar garra",
+            prioridade=75,
+            gatilho=Gatilho.SENSOR_VALOR,
+            condicao=lambda estado: "pressao_garra" in estado and float(estado.get("pressao_garra") or 0) < 0.3,
+            acao=lambda estado: {"tipo": "apertar_garra", "motivo": "pressao_baixa"},
+        ))
+
+
+fast_thinking = FastThinkingSystem()
