@@ -1,6 +1,6 @@
 [project]
 name = "chevel-ai"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local cognitive control layer for Dum-E/U, WIL-E, and safe robotics workflows."
 readme = "README.md"
 requires-python = ">=3.11"

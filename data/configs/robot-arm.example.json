@@ -1,0 +1,55 @@
+{
+  "robot_arm": {
+    "platform": "Arduino Mega 2560 5DOF",
+    "simulate": true,
+    "port": "",
+    "baudrate": 115200,
+    "servos": [
+      {
+        "index": 0,
+        "name": "base",
+        "pin": 2,
+        "model": "MG996R",
+        "min": 0,
+        "max": 180,
+        "home": 90
+      },
+      {
+        "index": 1,
+        "name": "shoulder",
+        "pin": 3,
+        "model": "MG996R",
+        "min": 15,
+        "max": 165,
+        "home": 90
+      },
+      {
+        "index": 2,
+        "name": "elbow",
+        "pin": 4,
+        "model": "MG996R",
+        "min": 10,
+        "max": 170,
+        "home": 90
+      },
+      {
+        "index": 3,
+        "name": "wrist",
+        "pin": 5,
+        "model": "SG90",
+        "min": 20,
+        "max": 160,
+        "home": 90
+      },
+      {
+        "index": 4,
+        "name": "gripper",
+        "pin": 6,
+        "model": "SG90",
+        "min": 20,
+        "max": 140,
+        "home": 90
+      }
+    ]
+  }
+}

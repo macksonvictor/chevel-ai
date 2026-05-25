@@ -19,6 +19,7 @@ from utils.security import (
     validate_cartesian_workspace,
     validate_servo_angles,
 )
+from utils.config_manager import get_config
 
 try:
     import serial
@@ -66,18 +67,23 @@ class RobotController:
         geometry: ArmGeometry | None = None,
         limits: Sequence[ServoLimit] | None = None,
         port: str | None = None,
-        baudrate: int = 115200,
-        simulate: bool = True,
+        baudrate: int | None = None,
+        simulate: bool | None = None,
     ):
+        config = get_config()
+        configured_port = port if port is not None else config.robot_arm_port
+        configured_baudrate = int(baudrate or config.robot_arm_baudrate)
+        configured_simulate = config.robot_arm_simulate if simulate is None else simulate
+
         self.geometry = geometry or ArmGeometry()
         self.limits = list(limits or DEFAULT_SERVO_LIMITS)
-        self.port = port
-        self.baudrate = baudrate
-        self.simulate = simulate or not port
+        self.port = configured_port
+        self.baudrate = configured_baudrate
+        self.simulate = configured_simulate or not configured_port
         self.state = RobotState(simulated=self.simulate)
         self._serial = None
-        if port and not self.simulate:
-            self.connect(port, baudrate)
+        if configured_port and not self.simulate:
+            self.connect(configured_port, configured_baudrate)
 
     def connect(self, port: str, baudrate: int | None = None) -> Dict:
         """Open the serial connection to the Arduino Mega firmware."""

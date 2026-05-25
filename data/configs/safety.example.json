@@ -1,0 +1,14 @@
+{
+  "safety": {
+    "emergency_stop_enabled": true,
+    "motion_requires_confirmation": true,
+    "block_physical_motion_without_adapter": true,
+    "default_robotics_mode": "simulation",
+    "critical_triggers": {
+      "person_in_arm_zone": "emergency_stop",
+      "battery_below_percent": 10,
+      "motor_temperature_celsius": 80,
+      "heartbeat_timeout_seconds": 5
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "voice": {
+    "enabled": false,
+    "backend": "browser",
+    "language": "pt-BR",
+    "wake_phrase": "ola chevel",
+    "porcupine_keyword_path": "",
+    "speech_recognition": {
+      "provider": "browser-or-speechrecognition",
+      "network_required": true
+    },
+    "tts": {
+      "provider": "browser-speech-synthesis",
+      "voice": "",
+      "rate": 1.0
+    }
+  }
+}

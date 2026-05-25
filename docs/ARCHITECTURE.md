@@ -10,12 +10,12 @@ CHEVEL AI is organized as a local cognitive runtime with three main responsibili
 
 ```txt
 User input
-  -> Chat API / CLI
+  -> Chat API / CLI / Voice foundation
   -> Cognitive Core
   -> Memory + World Model + Risk Decision
   -> LLM response and optional action
   -> Controller layer
-  -> Local OS, IoT stub, communication stub, or Dum-E/U bridge
+  -> Local OS, IoT stub, communication stub, 5DOF arm, or Dum-E/U bridge
 ```
 
 ## Python Domain
@@ -26,9 +26,12 @@ Key areas:
 
 - `chevel_main.py` starts CLI or FastAPI chat mode.
 - `interfaces/chat/server.py` exposes chat, cognitive, health, and Dum-E/U endpoints.
+- `interfaces/voice/` contains local listener and wake-word foundations.
 - `core/` contains LLM, memory, decision, reasoning, learning, and monitoring modules.
 - `controllers/` contains safe action boundaries for OS, IoT, communication, robotics, and Dum-E/U.
 - `utils/` contains configuration, logging, security, and native fallback bridges.
+- `firmware/arduino_mega_5dof/` contains the serial firmware for the 5-servo arm path.
+- `data/configs/` contains public examples for private local runtime config.
 
 ## Cognitive Core
 
@@ -57,6 +60,31 @@ The C++ layer provides deterministic helpers for:
 
 The native service can be built as `native/bin/chevel_core.exe`. When it is not available, Python fallbacks keep the app usable and `/health` reports the native state.
 
+## Configuration Domain
+
+CHEVEL runs with safe defaults, then optionally loads local JSON config:
+
+```txt
+defaults
+  -> data/configs/*.local.json
+  -> CHEVEL_CONFIG_PATH
+  -> environment variables
+```
+
+The public repo tracks only `*.example.json` files. Real ports, hardware
+addresses, tokens, and private paths should stay in ignored `*.local.json` files
+or environment variables.
+
+Important config areas:
+
+- model alias and Ollama backend;
+- memory paths;
+- allowed local programs;
+- voice settings;
+- Dum-E/U simulation and telemetry settings;
+- 5DOF robot arm serial defaults;
+- safety gates.
+
 ## Dum-E/U Bridge
 
 `controllers/dume_controller.py` defines the current robotics contract in simulation mode:
@@ -71,6 +99,25 @@ The native service can be built as `native/bin/chevel_core.exe`. When it is not 
 - telemetry frames.
 
 This bridge is the correct place to connect future hardware adapters. Real hardware adapters should preserve the same safety policy: emergency stop is always allowed, read-only status is safe, and motion requires confirmation.
+
+## 5DOF Robot Arm Bridge
+
+`controllers/robot_controller.py` and `firmware/arduino_mega_5dof/` provide a
+smaller robotics path for Arduino Mega 2560 experiments:
+
+- cartesian target conversion into 5 servo angles;
+- servo limit validation;
+- emergency stop state;
+- simulation mode by default;
+- optional serial output when a local port is configured.
+
+This path is hardware-ready, not automatically enabled.
+
+## Voice Foundation
+
+The browser UI exposes voice controls where Web Speech is available. The Python
+voice modules provide a local boundary for SpeechRecognition and Porcupine-style
+wake-word experiments. A full local ASR/TTS pipeline is a future adapter.
 
 ## Public Interfaces
 
@@ -101,6 +148,15 @@ SQLite is used for local MVP persistence:
 
 Local databases are ignored by Git.
 
+`data/models` and `data/workflows` are lightweight registries. They should hold
+manifests and examples, not large model weights or private learned workflows.
+
 ## Safety Boundary
 
 CHEVEL separates intelligence from physical execution. The LLM can propose actions, but execution goes through deterministic controllers and the decision engine. Robotics motion is treated as high risk by default.
+
+Current hardware-facing claims are intentionally limited:
+
+- Dum-E/U is a simulated bridge in this release.
+- The 5DOF arm path is serial-ready but simulated unless configured.
+- ROS 2, SLAM, MoveIt, RGB-D vision, Jetson services, and real 7DOF hardware are future adapters.

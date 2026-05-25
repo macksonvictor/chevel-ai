@@ -12,6 +12,7 @@
   <a href="https://github.com/macksonvictor/chevel-ai/actions/workflows/ci.yml">
     <img alt="CI" src="https://github.com/macksonvictor/chevel-ai/actions/workflows/ci.yml/badge.svg" />
   </a>
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.2.0-111111" />
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11+-111111?logo=python" />
   <img alt="C++" src="https://img.shields.io/badge/C++-Native_Core-111111?logo=cplusplus" />
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-Chat_API-111111?logo=fastapi" />
@@ -22,11 +23,13 @@
   <a href="#overview">Overview</a> |
   <a href="#dumeu--wil-e">Dum-E/U</a> |
   <a href="#product-gallery">Gallery</a> |
+  <a href="#capability-matrix">Matrix</a> |
   <a href="#features">Features</a> |
   <a href="#cognitive-core">Cognitive Core</a> |
   <a href="#native-c-core">Native C++</a> |
   <a href="#api">API</a> |
   <a href="#architecture">Architecture</a> |
+  <a href="#configuration">Configuration</a> |
   <a href="#local-setup">Local setup</a> |
   <a href="#quality">Quality</a> |
   <a href="#roadmap">Roadmap</a>
@@ -36,9 +39,9 @@
 
 ## Overview
 
-CHEVEL AI is a local assistant and robotics control brain built around Python orchestration, a deterministic C++ helper core, SQLite memory, a FastAPI chat interface, and a safe Dum-E/U bridge.
+CHEVEL AI is a local assistant and robotics control brain built around Python orchestration, a deterministic C++ helper core, SQLite/JSON memory, a FastAPI chat interface, voice foundations, Arduino-ready robot control, and a safe Dum-E/U bridge.
 
-The project is designed to turn natural language, voice, and file context into structured decisions, plans, and safe actions for a future physical robotics platform. The current release is a local MVP: it can chat, remember, inspect cognitive state, classify risk, expose robotics control contracts, and block dangerous physical commands until human confirmation is available.
+The project is designed to turn natural language, voice, and file context into structured decisions, plans, and safe actions for a future physical robotics platform. The current release is a local cognitive robotics foundation: it can chat, remember, inspect cognitive state, classify risk, expose robotics control contracts, simulate Dum-E/U commands, drive a 5DOF Arduino arm controller in safe simulation by default, and block dangerous physical commands until human confirmation is available.
 
 ---
 
@@ -57,6 +60,8 @@ CHEVEL owns the high-level intelligence layer:
 
 The current Dum-E/U bridge runs in **safe simulation mode**. It defines the public control contract without claiming that real motors, ROS 2, cameras, SLAM, MoveIt, or Jetson adapters are already connected.
 
+CHEVEL also includes a smaller 5DOF Arduino Mega arm bridge for local robotics experiments. That controller is hardware-ready through serial, but stays simulated unless a local port is explicitly configured.
+
 ---
 
 ## Product Gallery
@@ -68,6 +73,23 @@ A minimal dark interface for local chat, file input, voice controls, web mode, a
 <p align="center">
   <img src="./docs/assets/screenshots/chat.png" alt="CHEVEL AI chat interface" width="820" />
 </p>
+
+---
+
+## Capability Matrix
+
+| Area | Status | What exists now |
+| --- | --- | --- |
+| Chat and API | Implemented | FastAPI app, WebSocket chat, `/api/chat`, attachments, web mode, `HELI 1.5` public model alias |
+| Local LLM | Implemented | Ollama-backed engine with history and offline-safe behavior |
+| Memory | Implemented | SQLite memory plus JSON interaction files under `data/memory` |
+| Cognitive Core | Implemented | decision, world model, task reasoning, learning, fast thinking, self monitoring, goals |
+| Native C++ | Implemented with fallback | Optional helper service for deterministic intent, risk, similarity, and reflex checks |
+| Voice | Hardware-ready foundation | Browser voice in the UI plus Python listener/wake-word modules for local setups |
+| 5DOF arm | Hardware-ready foundation | Arduino Mega firmware, serial protocol, IK boundary, servo safety limits, simulation default |
+| Dum-E/U bridge | Simulated contract | Status, capabilities, command gate, emergency stop, telemetry WebSocket |
+| Dum-E/U real hardware | Planned adapter | ROS 2, sensors, MoveIt, RGB-D perception, Jetson and motor controllers are not connected in this release |
+| Perception stack | Planned adapter | YOLO/SAM/SLAM/pose estimation are documented direction, not active runtime claims |
 
 ---
 
@@ -99,6 +121,14 @@ A minimal dark interface for local chat, file input, voice controls, web mode, a
 - Emergency stop endpoint.
 - Command endpoint with confirmation gate.
 - Telemetry WebSocket for dashboards and future robot monitoring.
+
+### Voice and 5DOF Arm
+
+- Browser voice controls in the chat UI.
+- Python voice modules for SpeechRecognition and Porcupine-style wake word flows.
+- Arduino Mega 2560 firmware for 5 servo channels.
+- Safe 5DOF controller with cartesian target conversion and servo limit validation.
+- Hardware remains opt-in through local config and serial port selection.
 
 ---
 
@@ -193,13 +223,23 @@ chevel-ai/
 |   |-- comm_controller.py
 |   `-- robot_controller.py
 |-- interfaces/
-|   `-- chat/
-|       |-- server.py
-|       `-- web/
+|   |-- chat/
+|   |   |-- server.py
+|   |   `-- web/
+|   `-- voice/
+|       |-- listener.py
+|       `-- wake_word.py
+|-- firmware/
+|   `-- arduino_mega_5dof/
 |-- native/
 |   |-- chevel_core.cpp
 |   |-- chevel_native.cpp
 |   `-- CMakeLists.txt
+|-- data/
+|   |-- configs/
+|   |-- memory/
+|   |-- models/
+|   `-- workflows/
 |-- scripts/
 |-- docs/
 |-- tests/
@@ -213,6 +253,33 @@ More detail:
 - [Dum-E/U Bridge](./docs/DUME_BRIDGE.md)
 - [Safety Model](./docs/SAFETY_MODEL.md)
 - [5DOF Robot Arm](./docs/ROBOT_ARM.md)
+- [Configuration](./docs/CONFIGURATION.md)
+- [Universal Scope](./docs/UNIVERSAL_SCOPE.md)
+
+---
+
+## Configuration
+
+CHEVEL runs without private config files, but the public examples now make the runtime shape explicit.
+
+Tracked examples live in `data/configs`:
+
+- `chevel.example.json` for model, memory paths, search roots, and allowed programs;
+- `voice.example.json` for wake phrase, speech recognition, and TTS defaults;
+- `dume.example.json` for the simulated Dum-E/U bridge contract;
+- `robot-arm.example.json` for Arduino Mega 5DOF serial defaults;
+- `integrations.example.json` for future providers without secrets;
+- `safety.example.json` for conservative robotics gates.
+
+Create local private files with the `.local.json` suffix:
+
+```powershell
+Copy-Item data/configs/chevel.example.json data/configs/chevel.local.json
+```
+
+CHEVEL loads `data/configs/*.local.json`, then `CHEVEL_CONFIG_PATH` when set, then environment variables.
+
+More detail: [Configuration](./docs/CONFIGURATION.md).
 
 ---
 
@@ -236,7 +303,15 @@ cd C:\END0-SYM\chevel\chevel-ai
 powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
 ```
 
-### 3. Configure the model
+### 3. Optional local config
+
+```powershell
+Copy-Item data/configs/chevel.example.json data/configs/chevel.local.json
+```
+
+Edit only local files for machine-specific values such as ports, paths, and private integration settings.
+
+### 4. Configure the model
 
 ```powershell
 $env:CHEVEL_PUBLIC_MODEL="HELI 1.5"
@@ -245,13 +320,13 @@ ollama serve
 ollama pull llama3.1:8b
 ```
 
-### 4. Start CLI
+### 5. Start CLI
 
 ```powershell
 .\.venv\Scripts\python.exe chevel_main.py --mode cli
 ```
 
-### 5. Start chat
+### 6. Start chat
 
 ```powershell
 .\.venv\Scripts\python.exe chevel_main.py --mode chat --host 127.0.0.1 --port 8000
@@ -310,6 +385,12 @@ CI validates Python tests and required repository governance files.
 - Add telemetry visualization.
 - Add confirmation UX for high-risk actions.
 - Prepare release documentation for hardware integration phases.
+
+---
+
+## Release Line
+
+`v0.2.0` is the cognitive robotics foundation release: public scope, meaningful configuration examples, voice and 5DOF arm foundations, safe Dum-E/U contracts, and documentation that separates implemented runtime from future hardware adapters.
 
 ---
 

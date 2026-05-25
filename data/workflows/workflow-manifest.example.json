@@ -1,0 +1,40 @@
+{
+  "workflows": [
+    {
+      "name": "pegar_objeto",
+      "status": "implemented-template",
+      "objective": "Locate, approach, grasp, and verify an object.",
+      "requires_confirmation": true,
+      "steps": [
+        "visao_detectar",
+        "braco_aproximar",
+        "garra_fechar",
+        "verificar_pegada"
+      ]
+    },
+    {
+      "name": "entregar",
+      "status": "implemented-template",
+      "objective": "Move an object to a recipient and release it safely.",
+      "requires_confirmation": true,
+      "steps": [
+        "pegar",
+        "navegar_ate_destino",
+        "apresentar_objeto",
+        "soltar"
+      ]
+    },
+    {
+      "name": "inspecionar",
+      "status": "planned-adapter",
+      "objective": "Position perception sensors, capture data, analyze, and report.",
+      "requires_confirmation": false,
+      "steps": [
+        "posicionar_camera",
+        "capturar",
+        "analisar",
+        "relatar"
+      ]
+    }
+  ]
+}

@@ -62,6 +62,20 @@ jobs:
           test -f docs/ARCHITECTURE.md
           test -f docs/DUME_BRIDGE.md
           test -f docs/SAFETY_MODEL.md
+          test -f docs/CONFIGURATION.md
+          test -f docs/UNIVERSAL_SCOPE.md
+          test -f docs/releases/v0.2.0.md
+          test -f data/configs/README.md
+          test -f data/configs/chevel.example.json
+          test -f data/configs/voice.example.json
+          test -f data/configs/dume.example.json
+          test -f data/configs/robot-arm.example.json
+          test -f data/configs/integrations.example.json
+          test -f data/configs/safety.example.json
+          test -f data/models/README.md
+          test -f data/models/model-manifest.example.json
+          test -f data/workflows/README.md
+          test -f data/workflows/workflow-manifest.example.json
           test -f .github/PULL_REQUEST_TEMPLATE.md
           test -f .github/ISSUE_TEMPLATE/bug_report.yml
           test -f .github/ISSUE_TEMPLATE/feature_request.yml

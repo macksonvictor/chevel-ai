@@ -1,0 +1,16 @@
+{
+  "dume": {
+    "platform": "Dum-E/U",
+    "mode": "simulation",
+    "hardware_connected": false,
+    "require_confirmation": true,
+    "telemetry_interval_sec": 0.25,
+    "future_adapters": [
+      "ROS 2 topics",
+      "Jetson perception service",
+      "MoveIt motion planning",
+      "RGB-D vision",
+      "mobile base control"
+    ]
+  }
+}

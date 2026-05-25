@@ -374,7 +374,7 @@ async def dume_telemetry(websocket: WebSocket):
     try:
         while True:
             await websocket.send_json(dume_controller.telemetry())
-            await asyncio.sleep(0.25)
+            await asyncio.sleep(dume_controller.telemetry_interval_sec)
     except WebSocketDisconnect:
         return
 
