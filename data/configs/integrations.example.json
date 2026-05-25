@@ -1,0 +1,23 @@
+{
+  "integrations": {
+    "ollama": {
+      "enabled": true,
+      "host": "http://127.0.0.1:11434"
+    },
+    "home_assistant": {
+      "enabled": false,
+      "url": "",
+      "token_env": "CHEVEL_HOME_ASSISTANT_TOKEN"
+    },
+    "email": {
+      "enabled": false,
+      "provider": "",
+      "token_env": "CHEVEL_EMAIL_TOKEN"
+    },
+    "ros2": {
+      "enabled": false,
+      "domain_id": 0,
+      "notes": "Future adapter. Not active in the current release."
+    }
+  }
+}

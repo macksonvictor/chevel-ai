@@ -1,0 +1,25 @@
+{
+  "models": [
+    {
+      "public_name": "HELI 1.5",
+      "runtime": "ollama",
+      "local_model": "llama3.1:8b",
+      "status": "current-local-backend",
+      "purpose": "Natural-language chat, planning, and local reasoning."
+    },
+    {
+      "public_name": "HELI Voice",
+      "runtime": "future-local-asr-tts",
+      "local_model": "",
+      "status": "planned",
+      "purpose": "Local wake-word, transcription, and speech synthesis."
+    },
+    {
+      "public_name": "HELI Vision",
+      "runtime": "future-multimodal-adapter",
+      "local_model": "",
+      "status": "planned",
+      "purpose": "Image and RGB-D perception for Dum-E/U."
+    }
+  ]
+}

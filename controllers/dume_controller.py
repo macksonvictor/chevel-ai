@@ -8,6 +8,8 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Dict, List
 
+from utils.config_manager import get_config
+
 
 class DumeController:
     """Control contract for Dum-E/U, running in safe simulation by default."""
@@ -30,12 +32,15 @@ class DumeController:
     }
 
     def __init__(self) -> None:
+        config = get_config()
         self._lock = threading.RLock()
         self._sequence = 0
+        self.require_confirmation = config.dume_require_confirmation
+        self.telemetry_interval_sec = config.dume_telemetry_interval_sec
         self._state = {
             "platform": "Dum-E/U",
-            "mode": "simulation",
-            "hardware_connected": False,
+            "mode": config.dume_mode,
+            "hardware_connected": config.dume_hardware_connected,
             "emergency_stop": False,
             "last_command": None,
             "joints": [0.0] * 7,
@@ -66,7 +71,7 @@ class DumeController:
                 "thermal_ok": True,
                 "current_ok": True,
                 "human_in_arm_zone": False,
-                "requires_human_confirmation": True,
+                "requires_human_confirmation": self.require_confirmation,
             },
             "updated_at": datetime.now().isoformat(),
         }
@@ -95,7 +100,7 @@ class DumeController:
             "safety_policy": {
                 "emergency_stop": "always_allowed",
                 "read_only": "allowed",
-                "motion": "requires_confirmation",
+                "motion": "requires_confirmation" if self.require_confirmation else "configuration_allows_confirmed_motion",
                 "hardware": "disabled_until_adapter_configured",
             },
         }
@@ -203,7 +208,7 @@ class DumeController:
         normalized = self._normalize(command)
         if normalized in self.SAFE_COMMANDS or normalized in self.EMERGENCY_COMMANDS:
             return False
-        return normalized in self.MOTION_COMMANDS and not confirm
+        return self.require_confirmation and normalized in self.MOTION_COMMANDS and not confirm
 
     def summary(self) -> Dict:
         """Compact health summary for CHEVEL health checks."""

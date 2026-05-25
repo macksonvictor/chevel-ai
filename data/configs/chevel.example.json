@@ -1,0 +1,40 @@
+{
+  "core": {
+    "public_model_name": "HELI 1.5",
+    "ollama_model": "llama3.1:8b",
+    "ollama_host": "http://127.0.0.1:11434",
+    "max_history": 20
+  },
+  "paths": {
+    "data_dir": "data",
+    "memory_db_path": "data/memory/chevel.db",
+    "memory_json_dir": "data/memory/interactions",
+    "search_roots": [
+      ".",
+      "C:/END0-SYM/chevel",
+      "~"
+    ]
+  },
+  "actions": {
+    "allowed_programs": {
+      "calculadora": [
+        "calc.exe"
+      ],
+      "calc": [
+        "calc.exe"
+      ],
+      "bloco de notas": [
+        "notepad.exe"
+      ],
+      "notepad": [
+        "notepad.exe"
+      ],
+      "explorador": [
+        "explorer.exe"
+      ],
+      "explorer": [
+        "explorer.exe"
+      ]
+    }
+  }
+}

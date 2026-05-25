@@ -20,6 +20,16 @@ data/memory/*.sqlite
 data/memory/*.sqlite3
 data/memory/interactions/
 data/logs/
+data/configs/*.local.json
+data/configs/local*.json
+data/models/*
+!data/models/.gitkeep
+!data/models/README.md
+!data/models/model-manifest.example.json
+data/workflows/*
+!data/workflows/.gitkeep
+!data/workflows/README.md
+!data/workflows/workflow-manifest.example.json
 logs/
 *.log
 .env
