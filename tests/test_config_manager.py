@@ -25,6 +25,9 @@ class ConfigManagerTests(unittest.TestCase):
                         "ollama_model": "llama3.1:70b",
                         "max_history": 7,
                     },
+                    "paths": {
+                        "user_profile_path": "data/memory/custom-profile.local.json"
+                    },
                     "actions": {
                         "allowed_programs": {
                             "code": "code.exe"
@@ -49,6 +52,9 @@ class ConfigManagerTests(unittest.TestCase):
         self.assertEqual(config.ollama_model, "llama3.1:70b")
         self.assertEqual(config.max_history, 7)
         self.assertEqual(config.allowed_programs["code"], ["code.exe"])
+        self.assertTrue(
+            config.user_profile_path.as_posix().endswith("data/memory/custom-profile.local.json")
+        )
         self.assertTrue(config.voice_enabled)
         self.assertEqual(config.voice_backend, "speech-recognition")
 
@@ -72,12 +78,16 @@ class ConfigManagerTests(unittest.TestCase):
                     "CHEVEL_MODEL": "llama3.1:8b",
                     "CHEVEL_PUBLIC_MODEL": "HELI TEST",
                     "CHEVEL_MAX_HISTORY": "11",
+                    "CHEVEL_USER_PROFILE_PATH": "data/memory/env-profile.local.json",
                 },
             )
 
         self.assertEqual(config.ollama_model, "llama3.1:8b")
         self.assertEqual(config.public_model_name, "HELI TEST")
         self.assertEqual(config.max_history, 11)
+        self.assertTrue(
+            config.user_profile_path.as_posix().endswith("data/memory/env-profile.local.json")
+        )
 
     def test_dotenv_values_are_loaded_when_env_not_injected(self):
         with tempfile.TemporaryDirectory() as tmp:

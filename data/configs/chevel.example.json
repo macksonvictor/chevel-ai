@@ -9,6 +9,7 @@
     "data_dir": "data",
     "memory_db_path": "data/memory/chevel.db",
     "memory_json_dir": "data/memory/interactions",
+    "user_profile_path": "data/memory/profile.local.json",
     "search_roots": [
       ".",
       "C:/END0-SYM/chevel",

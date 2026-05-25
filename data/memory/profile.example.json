@@ -1,0 +1,30 @@
+{
+  "schema": "chevel.user_profile.v1",
+  "profile": {
+    "preferred_name": "Your name",
+    "language": "pt-BR",
+    "country": "Brazil",
+    "timezone": "America/Sao_Paulo"
+  },
+  "communication_style": [
+    "Be direct and honest.",
+    "Say when you do not know.",
+    "Prefer practical execution over generic advice."
+  ],
+  "active_projects": [
+    {
+      "name": "CHEVEL AI",
+      "role": "Cognitive control layer",
+      "status": "local development"
+    }
+  ],
+  "operational_preferences": {
+    "public_model_name": "HELI 1.5",
+    "robotics_safety": "Ask for human confirmation before critical physical actions."
+  },
+  "memory_rules": [
+    "Use this profile only as local assistant context.",
+    "Do not expose private profile content unless the user asks directly.",
+    "Do not treat future hardware adapters as active until they are connected and verified."
+  ]
+}

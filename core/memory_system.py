@@ -8,7 +8,7 @@ import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from utils.config_manager import get_config
 
@@ -16,12 +16,17 @@ from utils.config_manager import get_config
 class CHEVELMemory:
     """Local long-term memory backed by SQLite."""
 
-    def __init__(self, db_path: str | Path | None = None):
+    def __init__(
+        self,
+        db_path: str | Path | None = None,
+        profile_path: str | Path | None = None,
+    ):
         config = get_config()
         self.db_path = Path(db_path or config.memory_db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.json_dir = self.db_path.parent / "interactions"
         self.json_dir.mkdir(parents=True, exist_ok=True)
+        self.profile_path = Path(profile_path or config.user_profile_path)
         self._lock = threading.RLock()
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
@@ -136,6 +141,25 @@ class CHEVELMemory:
             except json.JSONDecodeError:
                 continue
         return interactions
+
+    def carregar_perfil_usuario(self) -> Dict:
+        """Load the private local user profile when available.
+
+        The profile file is intentionally local-only. It can hold stable context
+        about the user, but known secret-like keys are stripped before the data
+        is sent to the LLM.
+        """
+        if not self.profile_path.exists():
+            return {}
+
+        try:
+            payload = json.loads(self.profile_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+
+        if not isinstance(payload, dict):
+            return {}
+        return self._sanitize_profile(payload)
 
     def buscar_conversas_recentes(self, limite: int = 10) -> List[Dict]:
         """Return recent conversations, newest first."""
@@ -316,6 +340,10 @@ class CHEVELMemory:
     def gerar_contexto_para_llm(self, mensagem_usuario: str) -> Dict:
         """Build a compact context block for the LLM."""
         contexto: Dict[str, object] = {}
+        perfil = self.carregar_perfil_usuario()
+        if perfil:
+            contexto["perfil_usuario"] = perfil
+
         recentes = self.buscar_conversas_recentes(5)
         if recentes:
             contexto["conversas_recentes"] = [
@@ -342,6 +370,49 @@ class CHEVELMemory:
         if eventos:
             contexto["eventos_recentes"] = eventos
         return contexto
+
+    def _sanitize_profile(self, value: Any, depth: int = 0) -> Any:
+        blocked_keys = {
+            "api_key",
+            "api_keys",
+            "credential",
+            "credentials",
+            "password",
+            "passwords",
+            "private",
+            "secret",
+            "secrets",
+            "token",
+            "tokens",
+        }
+        if depth > 6:
+            return None
+
+        if isinstance(value, dict):
+            cleaned = {}
+            for key, item in value.items():
+                key_text = str(key)
+                if key_text.lower() in blocked_keys:
+                    continue
+                sanitized = self._sanitize_profile(item, depth + 1)
+                if sanitized is not None:
+                    cleaned[key_text] = sanitized
+            return cleaned
+
+        if isinstance(value, list):
+            return [
+                sanitized
+                for item in value[:30]
+                if (sanitized := self._sanitize_profile(item, depth + 1)) is not None
+            ]
+
+        if isinstance(value, str):
+            return value[:1000]
+
+        if isinstance(value, (int, float, bool)) or value is None:
+            return value
+
+        return str(value)[:1000]
 
     def close(self) -> None:
         """Close the database connection."""
