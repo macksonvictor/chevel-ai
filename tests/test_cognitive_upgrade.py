@@ -1,4 +1,5 @@
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -166,6 +167,19 @@ class CognitiveModuleTests(unittest.TestCase):
         reflexes = fast.atualizar_sensores({"bateria": 8})
 
         self.assertTrue(any(item["acao"]["tipo"] == "parada_emergencia" for item in reflexes))
+        self.assertTrue(fast.estado()["emergency_active"])
+
+    def test_fast_thinking_thread_and_callback(self):
+        received = []
+        fast = FastThinkingSystem(reflex_callback=received.append)
+        fast.atualizar_sensores({"pessoa_detectada_zona_braco": True})
+        fast.iniciar_loop(frequencia_hz=100)
+        time.sleep(0.04)
+        fast.parar_loop()
+
+        self.assertGreater(fast.estado()["tick_count"], 0)
+        self.assertTrue(fast.estado()["emergency_active"])
+        self.assertTrue(received)
 
     def test_goal_system_proactive_battery_action(self):
         with tempfile.TemporaryDirectory() as tmp:

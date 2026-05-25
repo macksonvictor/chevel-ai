@@ -4,7 +4,8 @@ Runtime values come from three layers, in this order:
 
 1. conservative code defaults;
 2. optional ``data/configs/*.local.json`` files plus ``CHEVEL_CONFIG_PATH``;
-3. environment variables.
+3. optional ``.env`` values;
+4. exported environment variables.
 
 The public repository ships only ``*.example.json`` files. Local ``*.local.json``
 files are intentionally ignored so ports, paths, and private integration values
@@ -78,6 +79,7 @@ def load_config(
     *,
     config_dir: str | Path | None = None,
     config_path: str | Path | None = None,
+    env_file: str | Path | None = None,
     env: Mapping[str, str] | None = None,
 ) -> ChevelConfig:
     """Load CHEVEL runtime config from optional local JSON files.
@@ -85,8 +87,14 @@ def load_config(
     ``config_dir`` and ``env`` are exposed for tests; normal runtime should call
     ``get_config()``.
     """
-    env_map = env if env is not None else os.environ
     root = PROJECT_ROOT
+    env_map: Mapping[str, str]
+    if env is not None:
+        env_map = env
+    else:
+        file_env = _load_env_file(_resolve_path(env_file or root / ".env", root))
+        env_map = {**file_env, **os.environ}
+
     resolved_config_dir = _resolve_path(config_dir or CONFIG_DIR, root)
     payload = _load_local_payload(
         resolved_config_dir,
@@ -194,6 +202,22 @@ def _read_json(path: Path) -> Dict:
     if not isinstance(data, dict):
         raise ValueError(f"Config file must contain a JSON object: {path}")
     return data
+
+
+def _load_env_file(path: Path) -> Dict[str, str]:
+    if not path.exists():
+        return {}
+    values: Dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        if not key:
+            continue
+        values[key] = value.strip().strip('"').strip("'")
+    return values
 
 
 def _deep_merge(base: MutableMapping, overlay: Mapping) -> MutableMapping:

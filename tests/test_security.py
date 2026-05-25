@@ -7,8 +7,10 @@ from utils.security import (
     SecurityError,
     ensure_existing_path,
     get_allowed_program_command,
+    servo_limits_manifest,
     validate_cartesian_workspace,
     validate_servo_angles,
+    validate_servo_payload,
 )
 
 
@@ -35,6 +37,20 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(validate_servo_angles([90, 90, 90, 90, 90]), [90, 90, 90, 90, 90])
         with self.assertRaises(SecurityError):
             validate_servo_angles([90, 0, 90, 90, 90])
+
+    def test_servo_payload_validation(self):
+        payload = {
+            "base": 90,
+            "shoulder": 90,
+            "elbow": 90,
+            "wrist": 90,
+            "gripper": 90,
+        }
+
+        self.assertEqual(validate_servo_payload(payload), [90, 90, 90, 90, 90])
+        self.assertEqual(servo_limits_manifest()[0]["name"], "base")
+        with self.assertRaises(SecurityError):
+            validate_servo_payload({"base": 90})
 
     def test_cartesian_workspace_validation(self):
         validate_cartesian_workspace(120, 0, 80)

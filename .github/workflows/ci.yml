@@ -54,6 +54,8 @@ jobs:
       - name: Validate required files
         run: |
           test -f README.md
+          test -f .env.example
+          test -f scripts/audit_project.ps1
           test -f LICENSE
           test -f SECURITY.md
           test -f SUPPORT.md

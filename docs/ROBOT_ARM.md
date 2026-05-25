@@ -22,6 +22,7 @@ Baud rate: `115200`.
 ```text
 PING
 STATUS
+LIMITS
 HOME
 ARM
 STOP
@@ -36,6 +37,8 @@ MOVE,base,shoulder,elbow,wrist,gripper
 `controllers.robot_controller.RobotController` provides:
 
 - cartesian-to-servo conversion for a 5DOF hobby arm;
+- optional IKPy inverse-kinematics backend when `requirements-hardware.txt` is installed;
+- deterministic analytical IK fallback when IKPy is unavailable;
 - servo limit validation before every output;
 - emergency stop state;
 - simulation mode by default;
@@ -61,3 +64,9 @@ arm.home()
 ## Safety
 
 All outgoing angles are checked through `utils.security.validate_servo_angles`. Cartesian targets are checked through `validate_cartesian_workspace`. CHEVEL also runs fast reflex rules in `core.fast_thinking` so critical signals such as a person in the arm zone or battery below 10 percent produce an emergency stop reflex before LLM reasoning.
+
+For hardware extras:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-hardware.txt
+```

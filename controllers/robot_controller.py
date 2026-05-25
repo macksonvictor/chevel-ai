@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Sequence
+from typing import Callable, Dict, List, Sequence
 
 from utils.security import (
     DEFAULT_SERVO_LIMITS,
@@ -25,6 +25,8 @@ try:
     import serial
 except Exception:  # pragma: no cover - depends on local hardware package
     serial = None
+
+IKSolver = Callable[[float, float, float, float, float], Sequence[float]]
 
 
 @dataclass(frozen=True)
@@ -69,6 +71,7 @@ class RobotController:
         port: str | None = None,
         baudrate: int | None = None,
         simulate: bool | None = None,
+        ik_solver: IKSolver | None = None,
     ):
         config = get_config()
         configured_port = port if port is not None else config.robot_arm_port
@@ -82,6 +85,13 @@ class RobotController:
         self.simulate = configured_simulate or not configured_port
         self.state = RobotState(simulated=self.simulate)
         self._serial = None
+        self._ik_solver = ik_solver
+        self.ik_backend = "custom" if ik_solver else "analytical"
+        self.last_ik_error = ""
+        if self._ik_solver is None:
+            self._ik_solver = self._build_ikpy_solver()
+            if self._ik_solver is not None:
+                self.ik_backend = "ikpy"
         if configured_port and not self.simulate:
             self.connect(configured_port, configured_baudrate)
 
@@ -104,6 +114,8 @@ class RobotController:
             "status": "online",
             "platform": "CHEVEL 5DOF arm",
             "backend": "serial" if self._serial else "simulation",
+            "ik_backend": self.ik_backend,
+            "last_ik_error": self.last_ik_error,
             "geometry": self.geometry.__dict__,
             "limits": [limit.__dict__ for limit in self.limits],
             "state": self.state.to_dict(),
@@ -173,13 +185,35 @@ class RobotController:
         wrist_pitch: float = 0.0,
         gripper: float = 90.0,
     ) -> List[float]:
-        """Analytical IK for a 5-DOF hobby arm, with optional library slot.
+        """Solve IK for a 5-DOF hobby arm.
 
-        The controller exposes a clean IK boundary so a heavier solver such as
-        IKPy can be plugged in later without changing the serial protocol.
+        IKPy is used when installed. If the optional library is unavailable or
+        cannot solve a target safely, CHEVEL falls back to the deterministic
+        analytical solver so simulation and tests keep working.
         """
         validate_cartesian_workspace(x, y, z)
+        if self._ik_solver:
+            try:
+                return validate_servo_angles(
+                    self._ik_solver(x, y, z, wrist_pitch, gripper),
+                    self.limits,
+                )
+            except Exception as exc:
+                self.last_ik_error = str(exc)
+                if self.ik_backend == "custom":
+                    raise
 
+        return self._cartesian_to_servo_angles_analytical(x, y, z, wrist_pitch, gripper)
+
+    def _cartesian_to_servo_angles_analytical(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        wrist_pitch: float = 0.0,
+        gripper: float = 90.0,
+    ) -> List[float]:
+        """Deterministic fallback IK for the 5DOF arm geometry."""
         base = math.degrees(math.atan2(y, x)) + 90.0
         radial = math.hypot(x, y) - self.geometry.wrist_to_tool
         vertical = z - self.geometry.base_height
@@ -211,6 +245,64 @@ class RobotController:
         wrist = 90.0 + wrist_pitch - (shoulder - 90.0) - (elbow - 90.0)
 
         return validate_servo_angles([base, shoulder, elbow, wrist, gripper], self.limits)
+
+    def _build_ikpy_solver(self) -> IKSolver | None:
+        """Create an optional IKPy solver when the hardware extras are installed."""
+        try:
+            from ikpy.chain import Chain
+            from ikpy.link import OriginLink, URDFLink
+        except Exception:
+            return None
+
+        try:
+            chain = Chain(
+                name="chevel_5dof",
+                links=[
+                    OriginLink(),
+                    URDFLink(
+                        name="base",
+                        origin_translation=[0, 0, 0],
+                        origin_orientation=[0, 0, 0],
+                        rotation=[0, 0, 1],
+                    ),
+                    URDFLink(
+                        name="shoulder",
+                        origin_translation=[0, 0, self.geometry.base_height],
+                        origin_orientation=[0, 0, 0],
+                        rotation=[0, 1, 0],
+                    ),
+                    URDFLink(
+                        name="elbow",
+                        origin_translation=[self.geometry.shoulder_to_elbow, 0, 0],
+                        origin_orientation=[0, 0, 0],
+                        rotation=[0, 1, 0],
+                    ),
+                    URDFLink(
+                        name="wrist",
+                        origin_translation=[self.geometry.elbow_to_wrist, 0, 0],
+                        origin_orientation=[0, 0, 0],
+                        rotation=[0, 1, 0],
+                    ),
+                    URDFLink(
+                        name="tool",
+                        origin_translation=[self.geometry.wrist_to_tool, 0, 0],
+                        origin_orientation=[0, 0, 0],
+                        rotation=[0, 0, 1],
+                    ),
+                ],
+            )
+        except Exception:
+            return None
+
+        def solve(x: float, y: float, z: float, wrist_pitch: float, gripper: float) -> Sequence[float]:
+            joints = chain.inverse_kinematics(target_position=[x, y, z])
+            base = math.degrees(float(joints[1])) + 90.0
+            shoulder = 90.0 - math.degrees(float(joints[2]))
+            elbow = 90.0 + math.degrees(float(joints[3]))
+            wrist = 90.0 + wrist_pitch - math.degrees(float(joints[4]))
+            return [base, shoulder, elbow, wrist, gripper]
+
+        return solve
 
     def send_angles(self, angles: Sequence[float], command: str = "MOVE") -> Dict:
         """Validate and send servo angles to the Arduino protocol."""

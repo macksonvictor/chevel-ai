@@ -1,3 +1,4 @@
 -r requirements.txt
 pvporcupine>=3.0
 PyAudio>=0.2.14
+ikpy>=3.4

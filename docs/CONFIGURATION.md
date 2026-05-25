@@ -11,9 +11,27 @@ Runtime config is loaded in this order:
 1. code defaults from `utils/config_manager.py`;
 2. every `data/configs/*.local.json` file, sorted by filename;
 3. the explicit file pointed to by `CHEVEL_CONFIG_PATH`, when set;
-4. environment variables such as `CHEVEL_MODEL` and `CHEVEL_PUBLIC_MODEL`.
+4. local `.env` values;
+5. exported environment variables such as `CHEVEL_MODEL` and `CHEVEL_PUBLIC_MODEL`.
 
-Environment variables always win.
+`.env` values override JSON config files. Exported OS environment variables
+override both.
+
+## Environment File
+
+The repository tracks `.env.example` and ignores `.env`.
+
+Safe local defaults:
+
+```env
+CHEVEL_PUBLIC_MODEL=HELI 1.5
+CHEVEL_MODEL=llama3.1:8b
+CHEVEL_MAX_HISTORY=20
+OLLAMA_HOST=http://127.0.0.1:11434
+```
+
+Optional values such as `PORCUPINE_ACCESS_KEY` and `CHEVEL_WAKE_WORD_PATH`
+should be added only to the local `.env` or to your OS environment.
 
 ## Public Examples
 

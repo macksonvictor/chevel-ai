@@ -46,15 +46,21 @@ class RegraReflexa:
 class FastThinkingSystem:
     """Millisecond reflex checks without LLM involvement."""
 
-    def __init__(self):
+    def __init__(self, reflex_callback: Callable[[Dict], None] | None = None):
         self.estado_sensores: Dict = {}
         self.regras: List[RegraReflexa] = []
         self.frequencia_hz = 100
         self.ultimo_tick = 0.0
+        self.tick_count = 0
+        self.emergency_active = False
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._lock = threading.RLock()
         self.ultimos_reflexos: List[Dict] = []
+        self._callbacks: List[Callable[[Dict], None]] = []
+        self._last_reflex_by_name: Dict[str, float] = {}
+        if reflex_callback:
+            self._callbacks.append(reflex_callback)
         self._registrar_regras_padrao()
 
     def iniciar_loop(self, frequencia_hz: int = 100) -> None:
@@ -81,20 +87,27 @@ class FastThinkingSystem:
             self.regras.append(regra)
             self.regras.sort(key=lambda item: item.prioridade, reverse=True)
 
+    def registrar_callback(self, callback: Callable[[Dict], None]) -> None:
+        """Register a callback called when a reflex fires."""
+        with self._lock:
+            self._callbacks.append(callback)
+
+    def limpar_estado_emergencia(self) -> None:
+        """Clear the emergency flag after a human safety check."""
+        with self._lock:
+            self.emergency_active = False
+
     def avaliar_reflexos(self) -> List[Dict]:
         native = evaluate_reflexes(self.estado_sensores)
         if native:
-            self.ultimos_reflexos = native[-10:]
-            return native
+            return self._record_reflexes(native)
 
         reflexos = []
         for regra in self.regras:
             result = regra.avaliar(self.estado_sensores)
             if result:
                 reflexos.append(result)
-        if reflexos:
-            self.ultimos_reflexos = (self.ultimos_reflexos + reflexos)[-10:]
-        return reflexos
+        return self._record_reflexes(reflexos)
 
     def estado(self) -> Dict:
         return {
@@ -103,6 +116,8 @@ class FastThinkingSystem:
             "loop_ativo": bool(self._thread and self._thread.is_alive()),
             "frequencia_hz": self.frequencia_hz,
             "ultimo_tick": self.ultimo_tick,
+            "tick_count": self.tick_count,
+            "emergency_active": self.emergency_active,
             "ultimos_reflexos": list(self.ultimos_reflexos),
         }
 
@@ -111,9 +126,39 @@ class FastThinkingSystem:
             started = time.perf_counter()
             with self._lock:
                 self.ultimo_tick = time.time()
+                self.tick_count += 1
                 self.avaliar_reflexos()
             elapsed = time.perf_counter() - started
             time.sleep(max(0.0, interval - elapsed))
+
+    def _record_reflexes(self, reflexes: List[Dict]) -> List[Dict]:
+        filtered = self._filter_cooldown(reflexes)
+        if not filtered:
+            return []
+        for reflex in filtered:
+            action = reflex.get("acao", {})
+            if action.get("tipo") == "parada_emergencia":
+                self.emergency_active = True
+            for callback in list(self._callbacks):
+                try:
+                    callback(reflex)
+                except Exception:
+                    continue
+        self.ultimos_reflexos = (self.ultimos_reflexos + filtered)[-10:]
+        return filtered
+
+    def _filter_cooldown(self, reflexes: List[Dict]) -> List[Dict]:
+        now = time.time()
+        selected: List[Dict] = []
+        for reflex in sorted(reflexes, key=lambda item: int(item.get("prioridade", 0)), reverse=True):
+            name = str(reflex.get("nome", "reflexo"))
+            priority = int(reflex.get("prioridade", 0))
+            cooldown = 0.1 if priority >= 90 else 1.0
+            if now - self._last_reflex_by_name.get(name, 0.0) < cooldown:
+                continue
+            self._last_reflex_by_name[name] = now
+            selected.append(reflex)
+        return selected
 
     def _registrar_regras_padrao(self) -> None:
         self.registrar_regra(RegraReflexa(
