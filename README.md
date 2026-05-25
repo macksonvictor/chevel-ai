@@ -262,6 +262,8 @@ More detail:
 
 CHEVEL runs without private config files, but the public examples now make the runtime shape explicit.
 
+The repository includes `.env.example` and the local `.env` is ignored. Safe local defaults cover `CHEVEL_PUBLIC_MODEL`, `CHEVEL_MODEL`, `CHEVEL_MAX_HISTORY`, and `OLLAMA_HOST`; secrets such as Porcupine keys should stay only in local env.
+
 Tracked examples live in `data/configs`:
 
 - `chevel.example.json` for model, memory paths, search roots, and allowed programs;
@@ -306,6 +308,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
 ### 3. Optional local config
 
 ```powershell
+Copy-Item .env.example .env
 Copy-Item data/configs/chevel.example.json data/configs/chevel.local.json
 ```
 

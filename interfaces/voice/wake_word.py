@@ -18,7 +18,7 @@ try:
 except Exception:  # pragma: no cover - optional runtime dependency
     pyaudio = None
 
-from interfaces.voice.listener import VoiceListener
+from interfaces.voice.listener import VoiceListener, VoiceListenResult
 
 
 @dataclass
@@ -28,6 +28,14 @@ class WakeWordStatus:
     active: bool
     backend: str
     message: str
+
+
+@dataclass
+class WakeCommandResult:
+    """Combined wake-word and active command capture result."""
+
+    wake: WakeWordStatus
+    command: VoiceListenResult
 
 
 class PorcupineWakeWordDetector:
@@ -82,6 +90,27 @@ class PorcupineWakeWordDetector:
         finally:
             self.close()
 
+    def listen_for_command(
+        self,
+        listener: VoiceListener | None = None,
+        timeout: int = 5,
+        phrase_time_limit: int = 10,
+        max_frames: Optional[int] = None,
+    ) -> WakeCommandResult:
+        """Wait for wake word, then start active command listening."""
+        activated = False
+
+        def mark_active() -> None:
+            nonlocal activated
+            activated = True
+
+        wake = self.listen(mark_active, max_frames=max_frames)
+        if not activated or not wake.active:
+            return WakeCommandResult(wake, VoiceListenResult(None, "skipped", wake.message))
+        active_listener = listener or VoiceListener()
+        command = active_listener.listen_command(timeout=timeout, phrase_time_limit=phrase_time_limit)
+        return WakeCommandResult(wake, command)
+
     def close(self) -> None:
         if self._stream:
             self._stream.close()
@@ -97,9 +126,14 @@ class PorcupineWakeWordDetector:
 class SimpleWakePhraseDetector:
     """Fallback detector using full speech recognition and phrase matching."""
 
-    def __init__(self, wake_phrase: str = "ola chevel", language: str = "pt-BR"):
+    def __init__(
+        self,
+        wake_phrase: str = "ola chevel",
+        language: str = "pt-BR",
+        listener: VoiceListener | None = None,
+    ):
         self.wake_phrase = self._normalize(wake_phrase)
-        self.listener = VoiceListener(language=language)
+        self.listener = listener or VoiceListener(language=language)
 
     def listen_once(self) -> WakeWordStatus:
         result = self.listener.listen_command(timeout=4, phrase_time_limit=4)
@@ -108,6 +142,18 @@ class SimpleWakePhraseDetector:
         if self.wake_phrase in self._normalize(result.text):
             return WakeWordStatus(True, "speech-recognition", "Wake phrase detectada.")
         return WakeWordStatus(False, "speech-recognition", "Frase de ativacao nao encontrada.")
+
+    def listen_for_command(
+        self,
+        timeout: int = 5,
+        phrase_time_limit: int = 10,
+    ) -> WakeCommandResult:
+        """Detect "Ola CHEVEL" and then capture the next command."""
+        wake = self.listen_once()
+        if not wake.active:
+            return WakeCommandResult(wake, VoiceListenResult(None, "skipped", wake.message))
+        command = self.listener.listen_command(timeout=timeout, phrase_time_limit=phrase_time_limit)
+        return WakeCommandResult(wake, command)
 
     @staticmethod
     def _normalize(value: str) -> str:

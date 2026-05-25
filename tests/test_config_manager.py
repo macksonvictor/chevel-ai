@@ -79,6 +79,27 @@ class ConfigManagerTests(unittest.TestCase):
         self.assertEqual(config.public_model_name, "HELI TEST")
         self.assertEqual(config.max_history, 11)
 
+    def test_dotenv_values_are_loaded_when_env_not_injected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env_path = Path(tmp) / ".env"
+            env_path.write_text(
+                "\n".join([
+                    "CHEVEL_MODEL=llama3.1:70b",
+                    "CHEVEL_PUBLIC_MODEL=HELI DOTENV",
+                    "CHEVEL_MAX_HISTORY=9",
+                ]),
+                encoding="utf-8",
+            )
+
+            config = load_config(
+                config_dir=Path(tmp) / "configs",
+                env_file=env_path,
+            )
+
+        self.assertEqual(config.ollama_model, "llama3.1:70b")
+        self.assertEqual(config.public_model_name, "HELI DOTENV")
+        self.assertEqual(config.max_history, 9)
+
     def test_missing_explicit_private_config_is_optional(self):
         with tempfile.TemporaryDirectory() as tmp:
             config = load_config(

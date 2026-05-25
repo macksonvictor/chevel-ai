@@ -6,6 +6,7 @@
   Serial protocol at 115200 baud:
     PING                  -> OK CHEVEL_SERVO_BRIDGE
     STATUS                -> OK STATUS a0,a1,a2,a3,a4
+    LIMITS                -> OK LIMITS min:max,...
     HOME                  -> OK HOME
     ARM                   -> OK ARMED
     STOP                  -> OK STOPPED
@@ -92,6 +93,10 @@ void handleCommand(String raw) {
   }
   if (raw == "STATUS") {
     printStatus();
+    return;
+  }
+  if (raw == "LIMITS") {
+    printLimits();
     return;
   }
   if (raw == "ARM") {
@@ -219,6 +224,17 @@ void printStatus() {
   for (byte i = 0; i < SERVO_COUNT; i++) {
     if (i > 0) Serial.print(",");
     Serial.print(currentAngle[i]);
+  }
+  Serial.println();
+}
+
+void printLimits() {
+  Serial.print("OK LIMITS ");
+  for (byte i = 0; i < SERVO_COUNT; i++) {
+    if (i > 0) Serial.print(",");
+    Serial.print(MIN_ANGLE[i]);
+    Serial.print(":");
+    Serial.print(MAX_ANGLE[i]);
   }
   Serial.println();
 }

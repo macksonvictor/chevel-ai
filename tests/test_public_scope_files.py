@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class PublicScopeFilesTests(unittest.TestCase):
     def test_required_public_scope_files_exist(self):
         required = [
+            ".env.example",
+            "scripts/audit_project.ps1",
             "docs/CONFIGURATION.md",
             "docs/UNIVERSAL_SCOPE.md",
             "docs/releases/v0.2.0.md",

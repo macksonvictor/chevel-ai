@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Sequence
+from typing import Dict, Iterable, List, Mapping, Sequence
 
 from utils.config_manager import get_config
 from utils.native_bridge import allowed_program_command, known_programs
@@ -128,6 +128,38 @@ def validate_servo_angles(
             )
         validated.append(round(angle, 2))
     return validated
+
+
+def validate_servo_payload(
+    payload: Sequence[float] | Mapping[str, float],
+    limits: Sequence[ServoLimit] | None = None,
+) -> List[float]:
+    """Validate servo angles from a list or a name-keyed payload.
+
+    Accepted mapping keys are the configured servo names, for example
+    ``{"base": 90, "shoulder": 95, ...}``.
+    """
+    selected_limits = list(limits or DEFAULT_SERVO_LIMITS)
+    if isinstance(payload, Mapping):
+        missing = [limit.name for limit in selected_limits if limit.name not in payload]
+        if missing:
+            raise SecurityError(f"Payload de servo incompleto. Faltando: {', '.join(missing)}")
+        ordered = [payload[limit.name] for limit in selected_limits]
+        return validate_servo_angles(ordered, selected_limits)
+    return validate_servo_angles(payload, selected_limits)
+
+
+def servo_limits_manifest(limits: Sequence[ServoLimit] | None = None) -> List[Dict[str, float | str]]:
+    """Return servo limits as a serializable manifest for APIs and docs."""
+    return [
+        {
+            "name": limit.name,
+            "min_angle": limit.min_angle,
+            "max_angle": limit.max_angle,
+            "home_angle": limit.home_angle,
+        }
+        for limit in (limits or DEFAULT_SERVO_LIMITS)
+    ]
 
 
 def validate_cartesian_workspace(
