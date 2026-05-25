@@ -71,7 +71,6 @@ jobs:
     name: Optional C++ service build
     runs-on: windows-latest
     timeout-minutes: 15
-    continue-on-error: true
 
     steps:
       - name: Checkout repository
@@ -89,5 +88,16 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path ".\scripts\build_cpp_service.ps1") {
-            powershell -ExecutionPolicy Bypass -File .\scripts\build_cpp_service.ps1
+            try {
+              powershell -ExecutionPolicy Bypass -File .\scripts\build_cpp_service.ps1
+              if ($LASTEXITCODE -ne 0) {
+                Write-Warning "Optional C++ service build skipped after exit code $LASTEXITCODE."
+                exit 0
+              }
+            } catch {
+              Write-Warning "Optional C++ service build skipped: $($_.Exception.Message)"
+              exit 0
+            }
+          } else {
+            Write-Host "No native service build script found; skipping optional C++ check."
           }

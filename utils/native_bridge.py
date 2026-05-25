@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import math
 import json
+import math
 import subprocess
+import time
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
@@ -88,11 +89,11 @@ def assess_action_risk(action: str, parameters: Optional[Dict] = None) -> Option
 
     result = _call_service(["risk", action, payload])
     if not result or not result.get("ok"):
-        return None
+        return _assess_action_risk_fallback(action, parameters or {})
     return result
 
 
-def evaluate_reflexes(sensor_state: Dict) -> Optional[List[Dict]]:
+def evaluate_reflexes(sensor_state: Dict) -> List[Dict]:
     """Ask the C++ quick core to evaluate reflex rules when available."""
     payload = json.dumps(sensor_state or {}, ensure_ascii=False)
     if _native is not None and hasattr(_native, "evaluate_reflexes"):
@@ -100,10 +101,10 @@ def evaluate_reflexes(sensor_state: Dict) -> Optional[List[Dict]]:
 
     result = _call_service(["reflex", payload])
     if not result or not result.get("ok"):
-        return None
+        return _evaluate_reflexes_fallback(sensor_state or {})
     reflexes = result.get("reflexes", [])
     if not isinstance(reflexes, list):
-        return None
+        return _evaluate_reflexes_fallback(sensor_state or {})
     return [dict(item) for item in reflexes]
 
 
@@ -137,3 +138,84 @@ def _cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
     if norm_a == 0 or norm_b == 0:
         return 0.0
     return dot / (norm_a * norm_b)
+
+
+def _assess_action_risk_fallback(action: str, parameters: Dict) -> Dict:
+    key = str(action or "").strip().lower()
+    risk = "medio"
+    requires_confirmation = True
+    reason = "acao desconhecida"
+
+    if key == "buscar_arquivo":
+        risk = "seguro"
+        requires_confirmation = False
+        reason = "busca local limitada"
+    elif key in {"abrir_arquivo", "controlar_luz"}:
+        risk = "baixo"
+        requires_confirmation = False
+        reason = "acao local reversivel ou stub"
+    elif key == "executar_programa":
+        serialized = json.dumps(parameters or {}, ensure_ascii=False)
+        if any(token in serialized for token in ["&", "|", ";", "<", ">", "`"]):
+            risk = "critico"
+            reason = "metacaracter de shell detectado"
+        else:
+            risk = "baixo"
+            requires_confirmation = False
+            reason = "programa ainda sera validado por allowlist"
+    elif key in {"dume_emergency_stop"}:
+        risk = "seguro"
+        requires_confirmation = False
+        reason = "parada segura simulada"
+    elif key == "dume_command":
+        command = str(parameters.get("command", "")).strip().lower()
+        if command in {"status", "capabilities", "diagnostics", "emergency_stop", "stop"}:
+            risk = "seguro"
+            requires_confirmation = False
+            reason = "comando robotico informativo ou parada segura"
+        elif command in {"home", "open_gripper"}:
+            risk = "medio"
+            requires_confirmation = False
+            reason = "comando robotico reversivel em simulacao"
+        else:
+            risk = "alto"
+            reason = "comando robotico fisico exige confirmacao no MVP"
+    elif key in {"enviar_email", "mover_braco"}:
+        risk = "alto"
+        reason = "acao externa ou fisica requer confirmacao no MVP"
+
+    return {
+        "ok": True,
+        "risk": risk,
+        "requires_confirmation": requires_confirmation,
+        "reason": reason,
+        "engine": "python-fallback",
+    }
+
+
+def _evaluate_reflexes_fallback(sensor_state: Dict) -> List[Dict]:
+    reflexes: List[Dict] = []
+
+    def add(nome: str, descricao: str, prioridade: int, tipo: str, motivo: str) -> None:
+        reflexes.append({
+            "nome": nome,
+            "descricao": descricao,
+            "prioridade": prioridade,
+            "acao": {"tipo": tipo, "motivo": motivo},
+            "engine": "python-fallback",
+        })
+
+    if bool(sensor_state.get("pessoa_detectada_zona_braco")):
+        add("pessoa_zona_braco", "Pessoa detectada na zona do braco", 100, "parada_emergencia", "pessoa_zona_braco")
+    if float(sensor_state.get("temp_motor_max", 0) or 0) > 80:
+        add("temp_motor_alta", "Temperatura do motor acima de 80C", 95, "desligar_motor", "temperatura")
+    if float(sensor_state.get("bateria", 100) or 100) < 10:
+        add("bateria_baixa", "Bateria abaixo de 10%", 90, "pausar_operacoes", "bateria_baixa")
+    if float(sensor_state.get("corrente_motor_max", 0) or 0) > 4:
+        add("sobrecorrente_motor", "Sobrecorrente acima de 4A", 85, "reduzir_potencia", "sobrecorrente")
+    if sensor_state.get("ultimo_heartbeat") and time.time() - float(sensor_state.get("ultimo_heartbeat")) > 5:
+        add("heartbeat_perdido", "Sem heartbeat por mais de 5s", 80, "ir_para_home", "heartbeat_perdido")
+    if "pressao_garra" in sensor_state and float(sensor_state.get("pressao_garra") or 0) < 0.3:
+        add("pressao_garra_baixa", "Pressao da garra abaixo de 30%", 75, "apertar_garra", "pressao_baixa")
+
+    return reflexes
