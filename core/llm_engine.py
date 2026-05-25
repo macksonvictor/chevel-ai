@@ -14,6 +14,12 @@ from core.personality import build_system_prompt
 from utils.config_manager import get_config
 
 
+try:
+    import ollama
+except Exception:  # pragma: no cover - optional local runtime package
+    ollama = None
+
+
 class CHEVELLLMEngine:
     """Small Ollama client with offline-safe behavior."""
 
@@ -24,6 +30,7 @@ class CHEVELLLMEngine:
         self.conversation_history: List[Dict[str, str]] = []
         self.max_history = config.max_history
         self._server_started_by_chevel = False
+        self._client = ollama.Client(host=self.host) if ollama else None
 
     def chat(
         self,
@@ -46,7 +53,7 @@ class CHEVELLLMEngine:
         }
 
         try:
-            data = self._post_json("/api/chat", payload)
+            data = self._ollama_chat(payload)
         except urllib.error.URLError:
             return self._offline_message()
         except TimeoutError:
@@ -108,16 +115,24 @@ class CHEVELLLMEngine:
         payload = {"model": self._select_model(), "messages": messages, "stream": True}
         full_response = ""
         try:
-            request = self._request("/api/chat", payload)
-            with urllib.request.urlopen(request, timeout=60) as response:
-                for line in response:
-                    if not line:
-                        continue
-                    chunk = json.loads(line.decode("utf-8"))
+            if self._client:
+                stream = self._client.chat(**payload)
+                for chunk in stream:
                     content = chunk.get("message", {}).get("content", "")
                     if content:
                         full_response += content
                         yield content
+            else:
+                request = self._request("/api/chat", payload)
+                with urllib.request.urlopen(request, timeout=60) as response:
+                    for line in response:
+                        if not line:
+                            continue
+                        chunk = json.loads(line.decode("utf-8"))
+                        content = chunk.get("message", {}).get("content", "")
+                        if content:
+                            full_response += content
+                            yield content
         except Exception:
             fallback = self._offline_message()
             full_response = fallback
@@ -216,6 +231,11 @@ class CHEVELLLMEngine:
         request = self._request(path, payload)
         with urllib.request.urlopen(request, timeout=60) as response:
             return json.loads(response.read().decode("utf-8"))
+
+    def _ollama_chat(self, payload: Dict) -> Dict:
+        if self._client:
+            return dict(self._client.chat(**payload))
+        return self._post_json("/api/chat", payload)
 
     def _get_json(self, path: str, start_if_down: bool = True) -> Dict:
         if start_if_down:

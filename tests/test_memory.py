@@ -19,6 +19,24 @@ class MemoryTests(unittest.TestCase):
             self.assertGreater(conversation_id, 0)
             self.assertEqual(rows[0]["usuario"], "ola")
             self.assertEqual(rows[0]["chevel"], "CHEVEL online")
+            json_rows = memory.recuperar_interacoes_json(1)
+            self.assertEqual(json_rows[0]["usuario"], "ola")
+            self.assertEqual(json_rows[0]["chevel"], "CHEVEL online")
+            memory.close()
+
+    def test_save_and_fetch_json_interaction(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            memory = CHEVELMemory(Path(tmp) / "memory.db")
+            path = memory.salvar_interacao_json(
+                "abrir calculadora",
+                "Executando calculadora",
+                {"source": "json-test"},
+            )
+            rows = memory.recuperar_interacoes_json(5)
+
+            self.assertTrue(path.exists())
+            self.assertEqual(rows[0]["usuario"], "abrir calculadora")
+            self.assertEqual(rows[0]["contexto"]["source"], "json-test")
             memory.close()
 
     def test_knowledge_context(self):
@@ -34,4 +52,3 @@ class MemoryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

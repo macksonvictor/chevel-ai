@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -19,6 +20,8 @@ class CHEVELMemory:
         config = get_config()
         self.db_path = Path(db_path or config.memory_db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.json_dir = self.db_path.parent / "interactions"
+        self.json_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
@@ -98,7 +101,41 @@ class CHEVELMemory:
                 ),
             )
             self.conn.commit()
+            self.salvar_interacao_json(usuario, chevel, contexto)
             return int(cursor.lastrowid)
+
+    def salvar_interacao_json(
+        self,
+        usuario: str,
+        chevel: str,
+        contexto: Optional[Dict] = None,
+    ) -> Path:
+        """Save one interaction as an individual JSON file in data/memory."""
+        timestamp = datetime.now().isoformat()
+        payload = {
+            "id": uuid.uuid4().hex,
+            "timestamp": timestamp,
+            "usuario": usuario,
+            "chevel": chevel,
+            "contexto": contexto or {},
+        }
+        filename = f"{timestamp.replace(':', '-').replace('.', '-')}_{payload['id']}.json"
+        path = self.json_dir / filename
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return path
+
+    def recuperar_interacoes_json(self, limite: int = 20) -> List[Dict]:
+        """Recover recent JSON interactions from data/memory."""
+        interactions = []
+        for path in sorted(self.json_dir.glob("*.json"), reverse=True)[:limite]:
+            try:
+                interactions.append(json.loads(path.read_text(encoding="utf-8")))
+            except json.JSONDecodeError:
+                continue
+        return interactions
 
     def buscar_conversas_recentes(self, limite: int = 10) -> List[Dict]:
         """Return recent conversations, newest first."""
@@ -313,4 +350,3 @@ class CHEVELMemory:
 
 
 chevel_memory = CHEVELMemory()
-

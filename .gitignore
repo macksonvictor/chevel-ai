@@ -18,6 +18,7 @@ native/build/
 data/memory/*.db
 data/memory/*.sqlite
 data/memory/*.sqlite3
+data/memory/interactions/
 data/logs/
 logs/
 *.log

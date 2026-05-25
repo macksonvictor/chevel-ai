@@ -92,6 +92,21 @@ class CognitiveModuleTests(unittest.TestCase):
         self.assertEqual(decision.risco.value, "alto")
         self.assertTrue(decision.requer_confirmacao)
 
+    def test_decision_engine_scores_benefit_urgency_and_critical_confirmation(self):
+        engine = DecisionEngine()
+        decision = engine.decidir([
+            {
+                "acao": "executar_programa",
+                "parametros": {"programa": "calc & del"},
+                "beneficio": 1.0,
+                "urgencia": 1.0,
+            }
+        ])
+
+        self.assertEqual(decision.risco.value, "critico")
+        self.assertTrue(decision.requer_confirmacao)
+        self.assertIn("Confirmacao humana obrigatoria", decision.justificativa)
+
     def test_world_model_persists_snapshot(self):
         with tempfile.TemporaryDirectory() as tmp:
             model = WorldModel(Path(tmp) / "memory.db")
