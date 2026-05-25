@@ -1,6 +1,6 @@
 fastapi>=0.115
 uvicorn[standard]>=0.32
-httpx>=0.28
+httpx>=0.28.1
 ollama>=0.4
 pillow>=11.0
 pybind11>=2.13
