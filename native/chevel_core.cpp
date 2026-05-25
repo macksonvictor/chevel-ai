@@ -343,7 +343,7 @@ int evaluate_reflexes(const std::string& sensor_json) {
         emit_reflex_item(first, "temp_motor_alta", "Temperatura do motor acima de 80C", 95, "desligar_motor", "temperatura");
     }
     if (number_value(sensor_json, "bateria", 100.0) < 10.0) {
-        emit_reflex_item(first, "bateria_baixa", "Bateria abaixo de 10%", 90, "pausar_operacoes", "bateria_baixa");
+        emit_reflex_item(first, "bateria_baixa", "Bateria abaixo de 10%", 90, "parada_emergencia", "bateria_baixa");
     }
     if (number_value(sensor_json, "corrente_motor_max", 0.0) > 4.0) {
         emit_reflex_item(first, "sobrecorrente_motor", "Sobrecorrente acima de 4A", 85, "reduzir_potencia", "sobrecorrente");

@@ -212,6 +212,7 @@ More detail:
 - [Architecture](./docs/ARCHITECTURE.md)
 - [Dum-E/U Bridge](./docs/DUME_BRIDGE.md)
 - [Safety Model](./docs/SAFETY_MODEL.md)
+- [5DOF Robot Arm](./docs/ROBOT_ARM.md)
 
 ---
 

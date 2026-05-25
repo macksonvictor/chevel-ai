@@ -165,7 +165,7 @@ class CognitiveModuleTests(unittest.TestCase):
         fast = FastThinkingSystem()
         reflexes = fast.atualizar_sensores({"bateria": 8})
 
-        self.assertTrue(any(item["acao"]["tipo"] == "pausar_operacoes" for item in reflexes))
+        self.assertTrue(any(item["acao"]["tipo"] == "parada_emergencia" for item in reflexes))
 
     def test_goal_system_proactive_battery_action(self):
         with tempfile.TemporaryDirectory() as tmp:
