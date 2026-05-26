@@ -5,7 +5,7 @@
 <h1 align="center">CHEVEL AI</h1>
 
 <p align="center">
-  <strong>Local A local AI, with memory and autonomy, designed to understand the user, control tools, make safe decisions, and transform commands into real actions.</strong>
+  <strong>local AI, with memory and autonomy, designed to understand the user, control tools, make safe decisions, and transform commands into real actions.</strong>
 </p>
 
 <p align="center">
