@@ -91,8 +91,10 @@ function hideTyping() {
 
 function updateHeroVisibility() {
     const hasConversation = messagesEl.querySelectorAll(".message:not(.system)").length > 0;
+    const isIdleHome = !hasConversation && inputEl.value.trim() === "" && attachedFiles.length === 0;
     heroLogoEl.classList.toggle("hidden", hasConversation);
     appShellEl.classList.toggle("has-conversation", hasConversation);
+    appShellEl.classList.toggle("idle-sky", isIdleHome);
 }
 
 function clearChat() {
@@ -141,6 +143,7 @@ function clearAttachments() {
     attachedFiles = [];
     fileInputEl.value = "";
     updateAttachmentStatus();
+    updateHeroVisibility();
 }
 
 function getDisplayMessage(text) {
@@ -512,6 +515,8 @@ async function refreshHealth() {
 
 formEl.addEventListener("submit", handleMessageSubmit);
 
+inputEl.addEventListener("input", updateHeroVisibility);
+
 sidebarButtonEl.addEventListener("click", () => {
     toggleSidebar();
 });
@@ -585,5 +590,6 @@ document.addEventListener("pointerdown", (event) => {
 window.addEventListener("load", () => {
     refreshHealth();
     updateHistory();
+    updateHeroVisibility();
     inputEl.focus();
 });

@@ -22,3 +22,12 @@ def test_voice_network_errors_do_not_create_chat_bubbles():
 
     assert "disableVoiceAfterError" in js
     assert 'addMessage("assistant", `Voz:' not in js
+
+
+def test_idle_home_uses_brighter_star_field():
+    css = (WEB_ROOT / "static" / "styles.css").read_text(encoding="utf-8")
+    js = (WEB_ROOT / "static" / "app.js").read_text(encoding="utf-8")
+
+    assert ".app-shell.idle-sky .chat-stage::before" in css
+    assert ".app-shell.idle-sky .chat-stage::after" in css
+    assert 'appShellEl.classList.toggle("idle-sky", isIdleHome)' in js
